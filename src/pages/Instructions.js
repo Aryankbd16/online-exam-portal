@@ -1,14 +1,32 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation to get the exam name
 import '../App.css'; // Import the CSS file
+import backIcon from '../icons8-double-left-48.png'; // Import back icon
 
 function Instructions() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get exam name from Dashboard (fallback to localStorage)
+  const examName = location.state?.exam || localStorage.getItem("examName") || "Unknown Exam";
   const [isChecked, setIsChecked] = useState(false);
+
+  // Store exam name in localStorage for persistence
+  if (location.state?.exam) {
+    localStorage.setItem("examName", location.state.exam);
+  }
 
   return (
     <div>
       {/* Header Bar at the Top */}
       <div className="instructions-header">
-        Instructions
+        <span>Instructions for {examName}</span>
+
+        {/* Back Button (Icon + Text) */}
+        <div className="back-button" onClick={() => navigate("/Dashboard")}>
+          <img src={backIcon} alt="Back" className="back-icon" />
+          <span className="back-text">Back</span>
+        </div>
       </div>
 
       {/* Rules Content - Centered on the Page */}
@@ -34,7 +52,7 @@ function Instructions() {
             <li>Voice detection – Talking or background noise may trigger warnings.</li>
           </ul>
 
-          <p className="rules-footer">Submit before time runs out. All the best for the exams!!</p>
+          <p className="rules-footer">Submit before time runs out. All the best for the {examName} exam!</p>
 
           {/* Checkbox for Agreement */}
           <div className="agree-container">
@@ -48,8 +66,8 @@ function Instructions() {
             <label htmlFor="agree" className="agree-label">Agree</label>
           </div>
 
-          {/* Submit Button */}
-          <button className="Submit-button" disabled={!isChecked}>
+          {/* Submit Button (Redirects to ExamQuestions.js with the exam name) */}
+          <button className="Submit-button" disabled={!isChecked} onClick={() => navigate("/ExamQuestions", { state: { exam: examName } })}>
             Submit
           </button>
         </div>

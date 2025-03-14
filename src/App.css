@@ -376,6 +376,33 @@ body {
   position: fixed;  /* Keep it fixed at the top */
   top: 0;
   left: 0;
+  height: 60px; /* ✅ Ensures the height remains the same */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.back-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: absolute;
+  right: 40px; /* 40px space from the right */
+  top: 10px;
+}
+
+.back-icon {
+  width: 50px; /* Adjust the icon size */
+  height: auto;
+}
+
+.back-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #000000;
+  margin-top: 3px;
 }
 
 /* Centering the Rules Card */
@@ -487,9 +514,12 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color:rgba(255, 166, 0, 0.644); /* Adjust to match your Home Page */
+  height: 100vh; /* Full height of viewport */
+  width: 100vw; /* Full width of viewport */
+  background-color: rgba(255, 166, 0, 0.644); /* Adjust to match your Home Page */
 }
+
+
 
 /* Profile Card */
 .profile-card {
@@ -632,6 +662,17 @@ input:checked + .slider:before {
   flex-direction: column;
 }
 
+/* Dashboard User Container (New Class) */
+.dashboard-user-container {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between user photo and logout button */
+  position: absolute;
+  top: 50%;
+  right: 50px; /* Positioned 30px away from the right corner */
+  transform: translateY(-50%);
+}
+
 /* Sidebar (Hidden by default) */
 .sidebar {
   position: fixed;
@@ -639,7 +680,7 @@ input:checked + .slider:before {
   top: 0;
   width: 220px;
   height: 100%;
-  background-color: #f4c2c2; /* Skin color */
+  background-color: #e0d3ced7; /* Skin color */
   padding-top: 60px;
   transition: left 0.3s ease-in-out;
   box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.1);
@@ -650,13 +691,12 @@ input:checked + .slider:before {
   left: 0;
 }
 
-/* Sidebar Close Icon */
+/* Sidebar Close Icon (Moved Below "Settings") */
 .close-icon {
-  width: 30px;
+  width: 35px; /* Increased size for better visibility */
   cursor: pointer;
-  position: absolute;
-  top: 15px;
-  right: 15px;
+  display: block; /* Ensures visibility */
+  margin: 15px auto 10px; /* Centers the icon below Settings */
 }
 
 /* Sidebar Menu Items */
@@ -673,6 +713,22 @@ input:checked + .slider:before {
   cursor: pointer;
   transition: background 0.3s;
 }
+
+/* Sidebar Links (Profile & Settings) */
+.sidebar-link {
+  text-decoration: none;
+  color: black;
+  font-size: 18px;
+  font-weight: bold;
+  display: block;
+  padding: 10px;
+  transition: color 0.3s;
+}
+
+.sidebar-link:hover {
+  color: darkorange; /* Change color on hover */
+}
+
 
 .sidebar ul li:hover {
   background-color: #e0a9a9;
@@ -709,30 +765,66 @@ input:checked + .slider:before {
   font-weight: bold;
 }
 
-/* User Profile Box with Dotted Border */
+/* Top Bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  position: relative;
+}
+
+/* Profile Container (Aligns User Photo to the Left of Logout Button) */
+.profile-container {
+  display: flex;
+  align-items: center;
+  gap: 40px; /* Moves user photo 40px to the left of logout button */
+  position: absolute;
+  right: 40px; /* Moved 20px away from the right corner */
+  top: 50%;
+  transform: translateY(-50%);
+  background : none;
+}
+
+/* User Profile Box */
 .user-box {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  padding: 10px;
-  border: 2px dotted #888;
-  border-radius: 10px;
-}
-
-/* User Photo */
-.user-photo {
-  width: 50px;
-  height: 50px;
+  border: 2px dotted gray;
+  width: 60px; /* Adjusted size */
+  height: 60px;
   border-radius: 50%;
-  object-fit: cover;
-  margin-bottom: 5px;
+  overflow: hidden;
+  background-color: none;
 }
 
-/* Username */
-.username {
-  font-size: 14px;
+/* Profile Photo */
+.user-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Logout Button (Same styling as Login Button, fixed background issue) */
+.logout-button {
+  color: white; /* Ensures visibility */
+  border: none; /* Matches other elements */
+  padding: 10px 18px;
+  font-size: 16px;
   font-weight: bold;
-  color: #444;
+  border-radius: 50px; /* Rounded corners */
+  cursor: pointer;
+  transition: background-color 0.3s;
+  background-color: #fbfbfb;
+  background-color: rgb(172, 31, 31);
+}
+
+/* Hover Effect for Logout Button */
+.logout-button:hover {
+  background-color: darkorange; /* Slightly darker on hover */
 }
 
 /* Frames Container (Now Stacked Vertically) */
@@ -767,6 +859,21 @@ input:checked + .slider:before {
   background-color: #d1e7dd; /* Light Green */
 }
 
+/* Exam Name Clickable Button */
+.exam-name {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 2px dotted black;
+  border-radius: 20px; /* Rounded shape */
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-align: center;
+}
+
+.exam-name:hover {
+  background-color: rgba(0, 0, 0, 0.1); /* Light gray hover effect */
+}
+
 /* Main Exam Container */
 .exam-container {
   display: flex;
@@ -775,6 +882,7 @@ input:checked + .slider:before {
   background-color: #f8f9fa;
   padding: 20px;
 }
+
 
 /* Question Card */
 .question-card {
@@ -890,4 +998,13 @@ input:checked + .slider:before {
 .navigation-buttons button:active {
   background-color: rgb(255, 100, 100);
   transform: scale(0.95); /* Slight shrink effect */
+}
+
+.last-page-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 16px;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
 }

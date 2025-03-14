@@ -1,67 +1,120 @@
-import React, { useState } from "react";
-import "../App.css"; // Import the CSS file
-import menuIcon from "../icons8-menu-50.png"; // Import menu icon
-import closeIcon from "../icons8-double-left-48.png"; // Import sidebar close icon
-//import userPhoto from "../user-photo.png"; // Import user profile photo (replace with actual image)
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom"; 
+import axios from "axios";
+import "../App.css";
+import menuIcon from "../icons8-menu-50.png";
+import closeIcon from "../left-arrow-in-circular-button-black-symbol.png";
 
 function Dashboard() {
-  // Sidebar visibility state
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [user, setUser] = useState({ username: "", image: "", givenExams: [], notGivenExams: [] });
 
-  // Exam lists (Can be modified dynamically)
-  const [upcomingExams, setUpcomingExams] = useState(["Math Test", "Physics Quiz"]);
-  const [completedExams, setCompletedExams] = useState(["Chemistry Midterm", "English Final"]);
+  // Session Timeout - 2 hours
+  const SESSION_TIMEOUT = 2 * 60 * 60 * 1000;
+  let sessionTimer;
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUsername = localStorage.getItem("username"); // ✅ Get username dynamically
+        if (!storedUsername) {
+          console.error("No user found in localStorage");
+          return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/getUser/${storedUsername}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
+        });
+
+        console.log("Fetched user data:", response.data); // Debugging log
+
+        setUser({
+          ...response.data,
+          image: response.data.image ? `data:image/png;base64,${response.data.image}` : ""
+        });
+
+        resetSessionTimer();
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        handleLogout();
+      }
+    };
+
+    fetchUserData();
+
+    // Reset session timer on user activity
+    window.addEventListener("mousemove", resetSessionTimer);
+    window.addEventListener("keypress", resetSessionTimer);
+
+    return () => {
+      window.removeEventListener("mousemove", resetSessionTimer);
+      window.removeEventListener("keypress", resetSessionTimer);
+      clearTimeout(sessionTimer);
+    };
+  }, []); 
+
+  // Function to reset session timer
+  const resetSessionTimer = () => {
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(() => {
+      handleLogout();
+    }, SESSION_TIMEOUT);
+  };
+
+  // Logout Function
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("username"); // ✅ Ensure username is cleared on logout
+    navigate("/");
+    window.location.reload();
+  };
 
   return (
     <div className="dashboard-container">
       {/* Sidebar Menu */}
       <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
-        {/* Sidebar Close Button */}
-        <img
-          src={closeIcon}
-          alt="Close Menu"
-          className="close-icon"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-
         <ul>
-          <li onClick={() => alert("Profile Clicked")}>Profile</li>
-          <li onClick={() => alert("Settings Clicked")}>Settings</li>
+          <li><Link to="/Profile" className="sidebar-link" onClick={() => setIsSidebarOpen(false)}>Profile</Link></li>
+          <li><Link to="/Settings" className="sidebar-link" onClick={() => setIsSidebarOpen(false)}>Settings</Link></li>
         </ul>
+        <img src={closeIcon} alt="Close Menu" className="close-icon" onClick={() => setIsSidebarOpen(false)} />
       </div>
 
       {/* Dashboard Content */}
       <div className="dashboard-content">
-        {/* Top Bar with Menu Icon, User Photo & Dotted Border */}
         <div className="top-bar">
           <div className="left-section">
-            <img
-              src={menuIcon}
-              alt="Menu"
-              className="menu-icon"
-              onClick={() => setIsSidebarOpen(true)}
-            />
+            <img src={menuIcon} alt="Menu" className="menu-icon" onClick={() => setIsSidebarOpen(true)} />
             <h1 className="dashboard-title">Dashboard</h1>
           </div>
 
-          {/* User Profile Box with Dotted Border */}
-          <div className="user-box">
-            {/* <img src={userPhoto} alt="User" className="user-photo" /> */}
-            <p className="username">Aryan Sanjay Gole</p>
+          {/* User Photo & Logout Button */}
+          <div className="dashboard-user-container">
+            <div className="user-box">
+              {user.image ? (
+                <img src={user.image} alt="User" className="user-photo" />
+              ) : (
+                <p>No Image Available</p>
+              )}
+            </div>
+            <button className="logout-button" onClick={handleLogout}>Logout</button>
           </div>
         </div>
 
-        {/* Two Frames Stacked Vertically */}
+        {/* Exams Frames */}
         <div className="frames-container">
           {/* Upcoming Exams Frame */}
           <div className="exam-frame upcoming">
             <h2>Upcoming Exams</h2>
             <ul>
-              {upcomingExams.length > 0 ? (
-                upcomingExams.map((exam, index) => <li key={index}>{exam}</li>)
-              ) : (
-                <li>No upcoming exams</li>
-              )}
+              {user.notGivenExams.length > 0 ? user.notGivenExams.map((exam, index) => (
+                <li key={index}>
+                  <span className="exam-name" onClick={() => navigate("/Instructions", { state: { exam } })}>
+                    {exam}
+                  </span>
+                </li>
+              )) : <li>No upcoming exams</li>}
             </ul>
           </div>
 
@@ -69,11 +122,7 @@ function Dashboard() {
           <div className="exam-frame completed">
             <h2>Completed Exams</h2>
             <ul>
-              {completedExams.length > 0 ? (
-                completedExams.map((exam, index) => <li key={index}>{exam}</li>)
-              ) : (
-                <li>No completed exams</li>
-              )}
+              {user.givenExams.length > 0 ? user.givenExams.map((exam, index) => <li key={index}>{exam}</li>) : <li>No completed exams</li>}
             </ul>
           </div>
         </div>

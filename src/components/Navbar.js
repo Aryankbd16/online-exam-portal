@@ -27,21 +27,6 @@ const Navbar = () => {
             <button className="nav-button">Login</button>
           </Link>
         </li>
-        <li>
-          <Link to="/Instructions">Instructions</Link>
-        </li>
-        <li>
-          <Link to="/Profile">Profile</Link>
-        </li>
-        <li>
-          <Link to="/Settings">Settings</Link>
-        </li>
-        <li>
-          <Link to="/Dashboard">Dashboard</Link>
-        </li>
-        <li>
-          <Link to="/ExamQuestions">ExamQuestions</Link>
-        </li>
       </ul>
     </nav>
   );
