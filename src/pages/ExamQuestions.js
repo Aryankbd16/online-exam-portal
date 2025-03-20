@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom"; 
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import "../App.css"; 
+import "../App.css";
+import TabSwitchDetector from "../components/TabSwitchDetector ";
+import FullScreenEnforcer from "../components/FullScreenEnforcer";
+import EyeTrackingComponent from "../components/EyeTrackingComponent";
 
 const shuffleQuestions = (array) => {
   return array.sort(() => Math.random() - 0.5);
@@ -11,20 +14,19 @@ function ExamQuestions() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Ensure username and examName are properly retrieved and stored
-  const [username, setUsername] = useState(() => {
-    const storedUsername = localStorage.getItem("username");
-    return storedUsername || location.state?.username || "";
-  });
-
-  const [examName, setExamName] = useState(() => {
-    const storedExam = localStorage.getItem("examName");
-    return storedExam || location.state?.exam || "Unknown Exam";
-  });
+  const username = localStorage.getItem("username") || location.state?.username || "";
+  const examName = localStorage.getItem("examName") || location.state?.exam || "Unknown Exam";
 
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [violationCount, setViolationCount] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(true);
+  const [isTabActive, setIsTabActive] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [showViolationCard, setShowViolationCard] = useState(false);
+  const [violationMessage, setViolationMessage] = useState("");
+  const [isExamSubmitted, setIsExamSubmitted] = useState(false);
 
   useEffect(() => {
     setQuestions(shuffleQuestions([
@@ -39,21 +41,57 @@ function ExamQuestions() {
       { id: 9, question: "What is the speed of light?", options: ["300,000 km/s", "150,000 km/s", "400,000 km/s", "100,000 km/s"], correctAnswer: "300,000 km/s" },
       { id: 10, question: "What is the capital of Japan?", options: ["Beijing", "Seoul", "Tokyo", "Bangkok"], correctAnswer: "Tokyo" }
     ]));
+  }, []);
 
-    // Store values in localStorage for persistence
-    if (location.state?.exam) {
-      localStorage.setItem("examName", location.state.exam);
+  useEffect(() => {
+    if (violationCount >= 10) {
+      handleAutoSubmit("Exam auto-submitted due to multiple violations.");
     }
-    if (location.state?.username) {
-      localStorage.setItem("username", location.state.username);
-    }
-  }, [location.state?.exam, location.state?.username]);
+  }, [violationCount]);
 
-  const handleAnswerChange = (questionId, selectedOption) => {
-    setAnswers({ ...answers, [questionId]: selectedOption });
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prevTime) => {
+        if (prevTime === 1) {
+          handleAutoSubmit("Exam auto-submitted due to time limit.");
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleAutoSubmit = async (message) => {
+    try {
+      await axios.post("http://localhost:5000/submit-exam", {
+        username,
+        examName,
+        violations: violationCount
+      });
+
+      setIsExamSubmitted(true); // Hide EyeTrackingComponent
+      alert(message);
+      navigate("/Dashboard");
+    } catch (error) {
+      alert("Failed to submit exam.");
+    }
   };
 
-  const isAnswered = (questionId) => answers[questionId] !== undefined;
+  const handleViolation = (message) => {
+    setViolationMessage(message);
+    setShowViolationCard(true);
+    setViolationCount((prev) => prev + 1);
+  };
+
+  const handleAnswerChange = (questionId, selectedOption) => {
+    if (isFullScreen && isTabActive) {
+      setAnswers({ ...answers, [questionId]: selectedOption });
+    } else {
+      handleViolation("Please return to fullscreen and stay on this tab to select an answer!");
+    }
+  };
 
   const goToNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
@@ -67,46 +105,41 @@ function ExamQuestions() {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (!username || !examName) {
-        alert("Error: No username or exam name found.");
-        return;
-      }
-
-      // Send API request to update user exam status
-      await axios.post("http://localhost:5000/submit-exam", {
-        username,
-        examName,
-      });
-
-      alert("Exam Submitted Successfully!");
-      navigate("/Dashboard"); // Redirect to Dashboard after submission
-    } catch (error) {
-      console.error("Error submitting exam:", error);
-      alert("Failed to submit exam.");
-    }
+  const isAnswered = (questionId) => {
+    return answers.hasOwnProperty(questionId);
   };
 
   return (
-    <div className="exam-container">
+    <div className="exam-container" style={{ userSelect: "none" }}>
+      <TabSwitchDetector setViolationCount={setViolationCount} />
+      <FullScreenEnforcer setViolationCount={setViolationCount} setIsFullScreen={setIsFullScreen} />
+      
+      {!isExamSubmitted && <EyeTrackingComponent />} {/* Hide after submission */}
+
       <div className="constant-box">
         <h3>Exam Info</h3>
-        <p>Exam Name: {examName}</p> {/* Displays the selected exam name */}
-        <p>Username: {username}</p> {/* Debugging purpose - Can be removed later */}
+        <p>Exam Name: {examName}</p>
+        <p>Username: {username}</p>
         <p>Total Questions: {questions.length}</p>
         <p>Attempted: {Object.keys(answers).length}</p>
+        <p><strong>Violation Count:</strong> {violationCount}</p>
+        <p><strong>Time Left:</strong> {timeLeft} seconds</p>
       </div>
+
+      {showViolationCard && (
+        <div className="violation-card">
+          <p>{violationMessage}</p>
+          <button onClick={() => setShowViolationCard(false)}>Okay</button>
+        </div>
+      )}
 
       <h1>Exam Questions</h1>
 
       {questions.length > 0 && (
         <div key={questions[currentQuestionIndex].id} className="question-card">
-          <h2>Question {currentQuestionIndex + 1}</h2>
-          <p>{questions[currentQuestionIndex].question}</p>
-
-          {questions[currentQuestionIndex].options.map((option, idx) => (
-            <div key={idx} className="option">
+          <p><strong>Q{currentQuestionIndex + 1}:</strong> {questions[currentQuestionIndex].question}</p>
+          {questions[currentQuestionIndex].options.map((option) => (
+            <label key={option} style={{ display: "block", margin: "5px 0" }}>
               <input
                 type="radio"
                 name={`question-${questions[currentQuestionIndex].id}`}
@@ -114,8 +147,8 @@ function ExamQuestions() {
                 checked={answers[questions[currentQuestionIndex].id] === option}
                 onChange={() => handleAnswerChange(questions[currentQuestionIndex].id, option)}
               />
-              <label>{option}</label>
-            </div>
+              {option}
+            </label>
           ))}
         </div>
       )}
@@ -125,21 +158,8 @@ function ExamQuestions() {
         {currentQuestionIndex < questions.length - 1 ? (
           <button onClick={goToNextQuestion}>Next</button>
         ) : (
-          <button onClick={handleSubmit}>Submit</button>
+          <button onClick={() => handleAutoSubmit("Exam submitted successfully!")}>Submit</button>
         )}
-      </div>
-
-      <div className="question-status">
-        {questions.map((q, index) => (
-          <span key={index} className={`status-box ${isAnswered(q.id) ? "answered" : "not-answered"}`}>
-            {index + 1}
-          </span>
-        ))}
-      </div>
-
-      <div className="summary-card">
-        <p>Attempted: {Object.keys(answers).length}</p>
-        <p>Remaining: {questions.length - Object.keys(answers).length}</p>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard';
 import ExamQuestions from './pages/ExamQuestions';
+import FullScreenEnforcer from './components/FullScreenEnforcer';
 function App() {
   return (
     <>
@@ -49,6 +50,10 @@ function App() {
                  <Route
                     path="/ExamQuestions"
                     element={<ExamQuestions />}
+                />
+                 <Route
+                    path="/FullScreenEnforcer"
+                    element={<FullScreenEnforcer />}
                 />
 
                 {/* If any route mismatches the upper 

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye & Audio Tracking</title>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        video {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 150px;
+            height: 100px;
+            border: 2px solid black;
+        }
+        #status {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Eye & Audio Tracking System</h1>
+    <p>Make sure to allow webcam and microphone access.</p>
+    <video id="videoFeed" autoplay></video>
+    <div id="status">Status: Initializing...</div>
+
+    <script>
+        let isLooking = true;
+        let backgroundNoiseDetected = false;
+
+        // Function to start WebGazer and continuously check gaze
+        function startEyeTracking() {
+            webgazer.begin(); // Start tracking immediately
+
+            setInterval(() => {
+                webgazer.getCurrentPrediction().then(prediction => {
+                    if (prediction) {
+                        let x = prediction.x; // Gaze X-coordinate
+                        let y = prediction.y; // Gaze Y-coordinate
+
+                        // Define a valid gaze area with margin
+                        let margin = 50;
+                        let validX = x > 0 - margin && x < window.innerWidth + margin;
+                        let validY = y > 0 - margin && y < window.innerHeight + margin;
+
+                        isLooking = validX && validY;
+                    } else {
+                        isLooking = false;
+                    }
+                    updateStatus();
+                });
+            }, 500); // Check gaze every 500ms
+        }
+
+        // Function to check background noise using Web Audio API
+        function startAudioTracking(stream) {
+            const audioContext = new AudioContext();
+            const analyser = audioContext.createAnalyser();
+            const microphone = audioContext.createMediaStreamSource(stream);
+            microphone.connect(analyser);
+            analyser.fftSize = 256;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            function checkBackgroundNoise() {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = dataArray.reduce((a, b) => a + b, 0);
+                let avgVolume = sum / dataArray.length;
+
+                backgroundNoiseDetected = avgVolume > 10;
+                updateStatus();
+                requestAnimationFrame(checkBackgroundNoise);
+            }
+
+            checkBackgroundNoise();
+        }
+
+        // Function to update status message
+        function updateStatus() {
+            let statusText = "Status: Tracking...";
+
+            if (!isLooking) {
+                statusText = "Warning: You are not looking at the screen!";
+            }
+            if (backgroundNoiseDetected) {
+                statusText = "Warning: Background noise detected!";
+            }
+            if (!isLooking && backgroundNoiseDetected) {
+                statusText = "Warning: You are not looking & background noise detected!";
+            }
+
+            document.getElementById("status").textContent = statusText;
+        }
+
+        // Start video & audio stream
+        navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+            .then((stream) => {
+                document.getElementById("videoFeed").srcObject = stream;
+                startAudioTracking(stream);
+                startEyeTracking(); // Start gaze tracking after permissions granted
+            })
+            .catch((error) => {
+                console.error("Error accessing media devices:", error);
+                document.getElementById("status").textContent = "Error: Please allow camera and microphone.";
+            });
+    </script>
+</body>
+</html>

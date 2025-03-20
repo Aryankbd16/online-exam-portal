@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation to get the exam name
-import '../App.css'; // Import the CSS file
-import backIcon from '../icons8-double-left-48.png'; // Import back icon
+import "../App.css"; // Import the CSS file
+import backIcon from "../icons8-double-left-48.png"; // Import back icon
 
 function Instructions() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Get exam name from Dashboard (fallback to localStorage)
   const examName = location.state?.exam || localStorage.getItem("examName") || "Unknown Exam";
   const [isChecked, setIsChecked] = useState(false);
@@ -15,6 +15,27 @@ function Instructions() {
   if (location.state?.exam) {
     localStorage.setItem("examName", location.state.exam);
   }
+
+  // Function to handle full-screen enforcement before navigating to ExamQuestions.js
+  const handleStartExam = () => {
+    if (!isChecked) {
+      alert("Please agree to the terms before starting the exam.");
+      return;
+    }
+
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen()
+        .then(() => {
+          navigate("/ExamQuestions", { state: { exam: examName } }); // Proceed only if full-screen is granted
+        })
+        .catch(() => {
+          alert("Full-screen permission is required to proceed with the exam.");
+        });
+    } else {
+      alert("Your browser does not support full-screen mode.");
+    }
+  };
 
   return (
     <div>
@@ -66,8 +87,8 @@ function Instructions() {
             <label htmlFor="agree" className="agree-label">Agree</label>
           </div>
 
-          {/* Submit Button (Redirects to ExamQuestions.js with the exam name) */}
-          <button className="Submit-button" disabled={!isChecked} onClick={() => navigate("/ExamQuestions", { state: { exam: examName } })}>
+          {/* Submit Button (Enforces Full-Screen and Navigates) */}
+          <button className="Submit-button" disabled={!isChecked} onClick={handleStartExam}>
             Submit
           </button>
         </div>
