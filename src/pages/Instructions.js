@@ -89,7 +89,7 @@ function Instructions() {
 
           {/* Submit Button (Enforces Full-Screen and Navigates) */}
           <button className="Submit-button" disabled={!isChecked} onClick={handleStartExam}>
-            Ready For Verfication!
+            Ready for verfication
           </button>
         </div>
       </div>

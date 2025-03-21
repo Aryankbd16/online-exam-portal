@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard';
 import ExamQuestions from './pages/ExamQuestions';
 import FullScreenEnforcer from './components/FullScreenEnforcer';
+import Verification from './pages/Verification';
 function App() {
   return (
     <>
@@ -30,6 +31,10 @@ function App() {
                 <Route
                     path="/Instructions"
                     element={<Instructions />}
+                />
+                 <Route
+                    path="/Verification"
+                    element={<Verification />}
                 />
                  <Route
                     path="/Signin"
