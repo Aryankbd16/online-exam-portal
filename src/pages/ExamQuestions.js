@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import Webcam from "react-webcam";
 import "../App.css";
 import TabSwitchDetector from "../components/TabSwitchDetector ";
 import FullScreenEnforcer from "../components/FullScreenEnforcer";
-import EyeTrackingComponent from "../components/EyeTrackingComponent";
+import VoiceDetectionComponent from "../components/VoiceDetectionComponent";
 
-const shuffleQuestions = (array) => {
-  return array.sort(() => Math.random() - 0.5);
-};
+const shuffleQuestions = (array) => array.sort(() => Math.random() - 0.5);
 
 function ExamQuestions() {
   const navigate = useNavigate();
   const location = useLocation();
+  const webcamRef = useRef(null);
 
   const username = localStorage.getItem("username") || location.state?.username || "";
   const examName = localStorage.getItem("examName") || location.state?.exam || "Unknown Exam";
@@ -23,10 +23,11 @@ function ExamQuestions() {
   const [violationCount, setViolationCount] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(true);
   const [isTabActive, setIsTabActive] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(600); // 10-minute exam
   const [showViolationCard, setShowViolationCard] = useState(false);
   const [violationMessage, setViolationMessage] = useState("");
   const [isExamSubmitted, setIsExamSubmitted] = useState(false);
+  const [registeredPhoto, setRegisteredPhoto] = useState(null);
 
   useEffect(() => {
     setQuestions(shuffleQuestions([
@@ -43,80 +44,154 @@ function ExamQuestions() {
     ]));
   }, []);
 
+  // Session Timer - Auto Submit when time is up
   useEffect(() => {
-    if (violationCount >= 10) {
-      handleAutoSubmit("Exam auto-submitted due to multiple violations.");
+    if (timeLeft <= 0) {
+      submitExam("Time's up! Exam auto-submitted.");
+      return;
     }
-  }, [violationCount]);
 
-  useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prevTime) => {
-        if (prevTime === 1) {
-          handleAutoSubmit("Exam auto-submitted due to time limit.");
-          return 0;
-        }
-        return prevTime - 1;
-      });
+      setTimeLeft((prevTime) => prevTime - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [timeLeft]);
 
-  const handleAutoSubmit = async (message) => {
+  // Fetch registered photo
+  useEffect(() => {
+    axios.get(`http://127.0.0.1:5000/get-registered-photo?username=${username}`)
+      .then(response => {
+        if (response.data.photo) {
+          const formattedPhoto = `data:image/jpeg;base64,${response.data.photo}`;
+          setRegisteredPhoto(formattedPhoto);
+        } else {
+          console.error("Error: No registered photo found in response.");
+        }
+      })
+      .catch(error => console.error("Error fetching registered photo:", error));
+  }, [username]);
+
+  // Capture Image Every 2.5 Seconds for Identity Verification
+  useEffect(() => {
+    const faceVerificationInterval = setInterval(() => {
+      captureImage();
+    }, 2500);
+
+    return () => clearInterval(faceVerificationInterval);
+  }, [registeredPhoto]);
+
+  // Function to Capture Webcam Image
+  const captureImage = async () => {
+    if (!registeredPhoto) {
+      console.error("Error: Registered photo is missing.");
+      return;
+    }
+  
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+  
+      if (!imageSrc) {
+        console.error("Error: Failed to capture image.");
+        return;
+      }
+  
+      // ✅ Log captured image
+      console.log("Captured Image (Base64 Format):", imageSrc.substring(0, 100) + "..."); // Show first 100 chars
+  
+      verifyFace(imageSrc);
+    }
+  };
+  
+  
+
+  // Verify Face Identity
+  const verifyFace = async (liveImage) => {
+    if (!registeredPhoto || !liveImage) {
+      console.error("Error: Registered photo or live image is missing.");
+      return;
+    }
+  
+    // ✅ Log Base64 length for debugging
+    console.log("Registered Photo (Base64 Length):", registeredPhoto.length);
+    console.log("Live Image (Base64 Length):", liveImage.length);
+  
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/verify", {
+        registeredPhoto,
+        liveImage,
+        studentId: username
+      });
+  
+      if (!response.data.match) {
+        setViolationMessage("⚠️ Possible cheating detected! Face does not match the registered student.");
+        setShowViolationCard(true);
+      }
+    } catch (error) {
+      console.error("Error verifying face:", error.response?.data || error.message);
+    }
+  };
+  
+
+  // Submit Exam (Only if Violations ≥ 10 or Time Ends)
+  const submitExam = async (message) => {
+    if (violationCount < 10 && timeLeft > 0) {
+      return;
+    }
+
     try {
       await axios.post("http://localhost:5000/submit-exam", {
         username,
         examName,
-        violations: violationCount
+        violations: violationCount,
       });
 
-      setIsExamSubmitted(true); // Hide EyeTrackingComponent
-      alert(message);
+      setIsExamSubmitted(true);
+      setViolationMessage(message);
+      setShowViolationCard(true);
       navigate("/Dashboard");
     } catch (error) {
-      alert("Failed to submit exam.");
+      console.error("Failed to submit exam:", error);
     }
   };
 
-  const handleViolation = (message) => {
-    setViolationMessage(message);
-    setShowViolationCard(true);
-    setViolationCount((prev) => prev + 1);
-  };
-
+  // Handle Answer Selection
   const handleAnswerChange = (questionId, selectedOption) => {
     if (isFullScreen && isTabActive) {
       setAnswers({ ...answers, [questionId]: selectedOption });
     } else {
-      handleViolation("Please return to fullscreen and stay on this tab to select an answer!");
+      setViolationMessage("Please return to fullscreen and stay on this tab to select an answer!");
+      setShowViolationCard(true);
     }
-  };
-
-  const goToNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const goToPreviousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const isAnswered = (questionId) => {
-    return answers.hasOwnProperty(questionId);
   };
 
   return (
     <div className="exam-container" style={{ userSelect: "none" }}>
       <TabSwitchDetector setViolationCount={setViolationCount} />
       <FullScreenEnforcer setViolationCount={setViolationCount} setIsFullScreen={setIsFullScreen} />
-      
-      {!isExamSubmitted && <EyeTrackingComponent />} {/* Hide after submission */}
 
-      <div className="constant-box">
+      <div className="webcam-container">
+        <Webcam ref={webcamRef} screenshotFormat="image/jpeg" width="100%" height="100%" />
+      </div>
+
+      {!isExamSubmitted && (
+        <VoiceDetectionComponent
+          setViolationMessage={setViolationMessage}
+          setShowViolationCard={setShowViolationCard}
+        />
+      )}
+
+      {showViolationCard && (
+        <div className="violation-card">
+          <div className="violation-message-box">
+            <h2>Violation Alert</h2>
+            <p>{violationMessage}</p>
+            <button onClick={() => setShowViolationCard(false)}>Okay</button>
+          </div>
+        </div>
+      )}
+
+<div className="constant-box">
         <h3>Exam Info</h3>
         <p>Exam Name: {examName}</p>
         <p>Username: {username}</p>
@@ -125,15 +200,6 @@ function ExamQuestions() {
         <p><strong>Violation Count:</strong> {violationCount}</p>
         <p><strong>Time Left:</strong> {timeLeft} seconds</p>
       </div>
-
-      {showViolationCard && (
-        <div className="violation-card">
-          <p>{violationMessage}</p>
-          <button onClick={() => setShowViolationCard(false)}>Okay</button>
-        </div>
-      )}
-
-      <h1>Exam Questions</h1>
 
       {questions.length > 0 && (
         <div key={questions[currentQuestionIndex].id} className="question-card">
@@ -154,11 +220,11 @@ function ExamQuestions() {
       )}
 
       <div className="navigation-buttons">
-        {currentQuestionIndex > 0 && <button onClick={goToPreviousQuestion}>Previous</button>}
+        {currentQuestionIndex > 0 && <button onClick={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}>Previous</button>}
         {currentQuestionIndex < questions.length - 1 ? (
-          <button onClick={goToNextQuestion}>Next</button>
+          <button onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}>Next</button>
         ) : (
-          <button onClick={() => handleAutoSubmit("Exam submitted successfully!")}>Submit</button>
+          <button onClick={() => submitExam("Exam submitted successfully!")}>Submit</button>
         )}
       </div>
     </div>

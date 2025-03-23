@@ -25,11 +25,20 @@ const FullScreenEnforcer = ({ setViolationCount, setIsFullScreen }) => {
 
     const enterFullScreen = () => {
         const elem = document.documentElement;
+
         if (elem.requestFullscreen) {
             elem.requestFullscreen().then(() => {
                 setIsFullScreen(true);
                 setShowFullScreenPrompt(false);
+            }).catch(err => {
+                console.error("Fullscreen request failed:", err);
             });
+        } else if (elem.mozRequestFullScreen) { // Firefox
+            elem.mozRequestFullScreen();
+        } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { // IE/Edge
+            elem.msRequestFullscreen();
         } else {
             alert("Your browser does not support full-screen mode.");
         }
@@ -38,9 +47,11 @@ const FullScreenEnforcer = ({ setViolationCount, setIsFullScreen }) => {
     return (
         <>
             {showFullScreenPrompt && (
-                <div className="fullscreen-modal">
+                <div className="fullscreen-card">
                     <p>You must be in full-screen mode to continue the exam.</p>
-                    <button onClick={enterFullScreen}>Re-Enter Full-Screen</button>
+                    <button className="fullscreen-button" onClick={enterFullScreen}>
+                        Re-Enter Full Screen
+                    </button>
                 </div>
             )}
         </>

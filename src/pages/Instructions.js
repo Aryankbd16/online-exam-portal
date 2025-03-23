@@ -16,25 +16,15 @@ function Instructions() {
     localStorage.setItem("examName", location.state.exam);
   }
 
-  // Function to handle full-screen enforcement before navigating to ExamQuestions.js
-  const handleStartExam = () => {
+  // Function to navigate to Verification.js without fullscreen enforcement
+  const handleStartVerification = () => {
     if (!isChecked) {
-      alert("Please agree to the terms before starting the exam.");
+      alert("Please agree to the terms before proceeding.");
       return;
     }
 
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen()
-        .then(() => {
-          navigate("/ExamQuestions", { state: { exam: examName } }); // Proceed only if full-screen is granted
-        })
-        .catch(() => {
-          alert("Full-screen permission is required to proceed with the exam.");
-        });
-    } else {
-      alert("Your browser does not support full-screen mode.");
-    }
+    // Navigate to Verification page without forcing fullscreen
+    navigate("/Verification", { state: { exam: examName } });
   };
 
   return (
@@ -65,8 +55,7 @@ function Instructions() {
           <h3 className="rules-section-title">🚫 Security & Anti-Cheating Measures</h3>
           <ul className="rules-list">
             <li>No multiple tabs – Opening new tabs is prohibited.</li>
-            <li>Fullscreen mode – Must stay on; exiting may end your exam.</li>
-            <li>No tab switching – Switching apps/tabs will be flagged.</li>
+            <li>Stay on the exam page – Switching apps/tabs will be flagged.</li>
             <li>No copy-paste – Keyboard shortcuts are disabled.</li>
             <li>No multiple persons – AI detects extra faces, leading to warnings.</li>
             <li>Time-bound – Timer cannot be paused or extended.</li>
@@ -87,9 +76,9 @@ function Instructions() {
             <label htmlFor="agree" className="agree-label">Agree</label>
           </div>
 
-          {/* Submit Button (Enforces Full-Screen and Navigates) */}
-          <button className="Submit-button" disabled={!isChecked} onClick={handleStartExam}>
-            Ready for verfication
+          {/* Submit Button (Navigates Without Full-Screen) */}
+          <button className="Submit-button" disabled={!isChecked} onClick={handleStartVerification}>
+            Ready for verification
           </button>
         </div>
       </div>
