@@ -22,37 +22,45 @@ function Dashboard() {
           console.error("No user found in localStorage");
           return;
         }
-
+  
         const response = await axios.get(`http://localhost:5000/getUser/${storedUsername}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
         });
-
+  
         console.log("Fetched user data:", response.data); // Debugging log
-
+  
+        // Convert image to Base64 format and store it in localStorage
+        if (response.data.image) {
+          const base64Image = `data:image/png;base64,${response.data.image}`;
+          localStorage.setItem("userPhoto", base64Image); // ✅ Save to localStorage
+        }
+  
         setUser({
           ...response.data,
           image: response.data.image ? `data:image/png;base64,${response.data.image}` : ""
         });
 
-        resetSessionTimer();
+        resetSessionTimer(); // ✅ Keep session timer functionality
       } catch (error) {
         console.error("Error fetching user data:", error);
         handleLogout();
       }
     };
-
-    fetchUserData();
+  
+    fetchUserData(); // ✅ Call the function inside useEffect
 
     // Reset session timer on user activity
-    window.addEventListener("mousemove", resetSessionTimer);
-    window.addEventListener("keypress", resetSessionTimer);
+    const resetTimer = () => resetSessionTimer();
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keypress", resetTimer);
 
     return () => {
-      window.removeEventListener("mousemove", resetSessionTimer);
-      window.removeEventListener("keypress", resetSessionTimer);
-      clearTimeout(sessionTimer);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keypress", resetTimer);
+      clearTimeout(sessionTimer); // ✅ Ensure session timer is cleared
     };
-  }, []); 
+
+  }, []); // ✅ Closing bracket and dependency array
 
   // Function to reset session timer
   const resetSessionTimer = () => {
@@ -66,6 +74,7 @@ function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("username"); // ✅ Ensure username is cleared on logout
+    localStorage.removeItem("userPhoto"); // ✅ Clear stored user photo on logout
     navigate("/");
     window.location.reload();
   };

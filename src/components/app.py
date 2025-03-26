@@ -13,7 +13,8 @@ import datetime
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # Increase to 50MB
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}) 
+
 
 # Initialize Logger
 logging.basicConfig(level=logging.INFO)
@@ -129,7 +130,7 @@ def verify_student():
 
 @app.route("/detect", methods=["POST"])
 def detect():
-    """Endpoint for detecting cheating behavior"""
+    """Detects cheating behavior using object detection."""
     try:
         data = request.json
         frame = decode_image(data.get("frame"))
@@ -140,13 +141,19 @@ def detect():
 
         is_suspicious, detected_obj = detect_suspicious_objects(frame)
         if is_suspicious:
-            save_screenshot(frame, student_id)
+            save_screenshot(frame, student_id)  # ✅ Save screenshot when cheating is detected
+            return jsonify({
+                "alert": True,
+                "object": detected_obj,
+                "message": f"Violation detected! {detected_obj} found in your environment."
+            })
 
-        return jsonify({"alert": is_suspicious, "object": detected_obj})
-    
+        return jsonify({"alert": False})
+
     except Exception as e:
         logging.error(f"Error in /detect: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":  
     app.run(debug=True)

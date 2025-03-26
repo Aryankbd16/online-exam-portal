@@ -20,11 +20,11 @@ const VoiceDetectionComponent = ({ setViolationMessage, setShowViolationCard }) 
           const avgVolume = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
           const currentTime = Date.now();
 
-          if (avgVolume >= 20) {
+          if (avgVolume >= 100) {
             setIsQuiet(false);
 
             // Show warning for background noise but DO NOT increase violation count
-            if (currentTime - lastNoiseViolationTime >= 10000) {
+            if (currentTime - lastNoiseViolationTime >= 50000000000) {
               setViolationMessage("Warning: Background noise detected! Please ensure a quiet environment.");
               setShowViolationCard(true);
               setLastNoiseViolationTime(currentTime);

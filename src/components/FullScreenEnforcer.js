@@ -1,28 +1,38 @@
 import React, { useEffect, useState } from "react";
 
-const FullScreenEnforcer = ({ setViolationCount, setIsFullScreen }) => {
+const FullScreenEnforcer = ({ setViolationCount, setIsFullScreen, setShowViolationCard, setViolationMessage }) => {
     const [showFullScreenPrompt, setShowFullScreenPrompt] = useState(false);
 
-    useEffect(() => {
-        const handleFullScreenChange = () => {
-            if (!document.fullscreenElement) {
-                setViolationCount(prev => {
-                    const newCount = prev + 1;
-                    alert(`Warning! You exited full-screen mode. Total violations: ${newCount}`);
-                    return newCount;
-                });
-                setIsFullScreen(false);
-                setShowFullScreenPrompt(true);
-            }
-        };
+    // Detect when the user exits fullscreen
+    const handleFullscreenChange = () => {
+        if (!document.fullscreenElement) {
+            setShowViolationCard(true);
+            setViolationMessage("⚠️ Fullscreen exit detected! Please stay in fullscreen mode.");
+            setViolationCount((prev) => prev + 1);
+            setShowFullScreenPrompt(true); // Show re-enter fullscreen prompt
+            setIsFullScreen(false);
+        } else {
+            setIsFullScreen(true);
+            setShowFullScreenPrompt(false); // Hide prompt if fullscreen is entered again
+        }
+    };
 
-        document.addEventListener("fullscreenchange", handleFullScreenChange);
+    // Listen for fullscreen change events
+    useEffect(() => {
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+        document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+        document.addEventListener("MSFullscreenChange", handleFullscreenChange);
 
         return () => {
-            document.removeEventListener("fullscreenchange", handleFullScreenChange);
+            document.removeEventListener("fullscreenchange", handleFullscreenChange);
+            document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+            document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+            document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
         };
-    }, [setViolationCount, setIsFullScreen]);
+    }, []);
 
+    // Function to re-enter fullscreen mode
     const enterFullScreen = () => {
         const elem = document.documentElement;
 
@@ -35,7 +45,7 @@ const FullScreenEnforcer = ({ setViolationCount, setIsFullScreen }) => {
             });
         } else if (elem.mozRequestFullScreen) { // Firefox
             elem.mozRequestFullScreen();
-        } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+        } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, Opera
             elem.webkitRequestFullscreen();
         } else if (elem.msRequestFullscreen) { // IE/Edge
             elem.msRequestFullscreen();

@@ -23,11 +23,18 @@ function ExamQuestions() {
   const [violationCount, setViolationCount] = useState(0);
   const [isFullScreen, setIsFullScreen] = useState(true);
   const [isTabActive, setIsTabActive] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(600); // 10-minute exam
+  const [timeLeft, setTimeLeft] = useState(60); // 10-minute exam
   const [showViolationCard, setShowViolationCard] = useState(false);
   const [violationMessage, setViolationMessage] = useState("");
   const [isExamSubmitted, setIsExamSubmitted] = useState(false);
   const [registeredPhoto, setRegisteredPhoto] = useState(null);
+
+
+  useEffect(() => {
+    if (violationCount >= 10) {
+        submitExam("Exam auto-submitted due to multiple violations!");
+    }
+}, [violationCount]);
 
   useEffect(() => {
     setQuestions(shuffleQuestions([
@@ -58,25 +65,22 @@ function ExamQuestions() {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  // Fetch registered photo
-  useEffect(() => {
-    axios.get(`http://127.0.0.1:5000/get-registered-photo?username=${username}`)
-      .then(response => {
-        if (response.data.photo) {
-          const formattedPhoto = `data:image/jpeg;base64,${response.data.photo}`;
-          setRegisteredPhoto(formattedPhoto);
-        } else {
-          console.error("Error: No registered photo found in response.");
-        }
-      })
-      .catch(error => console.error("Error fetching registered photo:", error));
-  }, [username]);
+ // Fetch registered photo
+ useEffect(() => {
+  const storedPhoto = localStorage.getItem("userPhoto"); // ✅ Retrieve stored photo
+  if (storedPhoto) {
+    setRegisteredPhoto(storedPhoto);
+  } else {
+    console.error("No registered photo found in localStorage");
+  }
+}, []);
+
 
   // Capture Image Every 2.5 Seconds for Identity Verification
   useEffect(() => {
     const faceVerificationInterval = setInterval(() => {
       captureImage();
-    }, 2500);
+    }, 5000);
 
     return () => clearInterval(faceVerificationInterval);
   }, [registeredPhoto]);
@@ -132,13 +136,84 @@ function ExamQuestions() {
     }
   };
   
+  useEffect(() => {
+    const detectFakeWebcam = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (stream.getTracks().length === 0) {
+          setViolationMessage("❌ Fake Webcam Detected!");
+          setShowViolationCard(true);
+         
+        }
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (error) {
+        setViolationMessage("❌ Fake Webcam Detected or webcam access denied.");
+        setShowViolationCard(true);
+        console.error("Fake webcam detected or webcam access denied.");
+       
+      }
+    };
 
-  // Submit Exam (Only if Violations ≥ 10 or Time Ends)
+    detectFakeWebcam();
+  }, []);
+
+  useEffect(() => {
+    const detectCheating = async () => {
+      if (!webcamRef.current) return;
+  
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) return;
+  
+      try {
+        const response = await axios.post("http://127.0.0.1:5000/detect", {
+          frame: imageSrc,
+          studentId: username
+        });
+  
+        if (response.data.alert) {
+          setViolationMessage(response.data.message); // Show violation alert
+          setShowViolationCard(true);
+          setViolationMessage("⚠️ Violation detected! Please follow the exam rules.");
+          setViolationCount((prev) => prev + 1); // Increase violation count
+        }
+      } catch (error) {
+        console.error("Error detecting cheating:", error);
+      }
+    };
+  
+    
+    // Run cheating detection every 3 seconds
+    const interval = setInterval(() => {
+      detectCheating();
+    }, 10000);
+  
+    return () => clearInterval(interval);
+  }, [username]);
+  
   const submitExam = async (message) => {
-    if (violationCount < 10 && timeLeft > 0) {
-      return;
-    }
+    try {
+        const response = await axios.post("http://localhost:5000/submit-exam", {
+            username,
+            examName,
+            violations: violationCount,
+            answers
+        });
 
+        if (response.status === 200) {
+            setIsExamSubmitted(true);
+            setViolationMessage(message);
+            setShowViolationCard(true);
+
+            // ✅ Delay navigation to ensure message is seen
+            setTimeout(() => {
+                navigate("/Dashboard");
+            }, 3000);
+        } else {
+            console.error("Error submitting exam:", response.data);
+        }
+    } catch (error) {
+        console.error("Failed to submit exam:", error.message);
+    }
     try {
       await axios.post("http://localhost:5000/submit-exam", {
         username,
@@ -167,8 +242,18 @@ function ExamQuestions() {
 
   return (
     <div className="exam-container" style={{ userSelect: "none" }}>
-      <TabSwitchDetector setViolationCount={setViolationCount} />
-      <FullScreenEnforcer setViolationCount={setViolationCount} setIsFullScreen={setIsFullScreen} />
+     <TabSwitchDetector 
+  setShowViolationCard={setShowViolationCard} 
+  setViolationMessage={setViolationMessage} 
+  setViolationCount={setViolationCount} 
+/>
+
+<FullScreenEnforcer 
+  setShowViolationCard={setShowViolationCard} 
+  setViolationMessage={setViolationMessage} 
+  setViolationCount={setViolationCount} 
+  setIsFullScreen={setIsFullScreen}
+/>
 
       <div className="webcam-container">
         <Webcam ref={webcamRef} screenshotFormat="image/jpeg" width="100%" height="100%" />
@@ -181,15 +266,16 @@ function ExamQuestions() {
         />
       )}
 
-      {showViolationCard && (
-        <div className="violation-card">
-          <div className="violation-message-box">
-            <h2>Violation Alert</h2>
-            <p>{violationMessage}</p>
-            <button onClick={() => setShowViolationCard(false)}>Okay</button>
-          </div>
-        </div>
-      )}
+{showViolationCard && (
+  <div className="violation-card">
+    <div className="violation-message-box">
+      <h2>⚠️ Violation Detected!</h2>
+      <p>{violationMessage}</p>
+      <button onClick={() => setShowViolationCard(false)}>Okay</button>
+    </div>
+  </div>
+)}
+
 
 <div className="constant-box">
         <h3>Exam Info</h3>
@@ -202,7 +288,8 @@ function ExamQuestions() {
       </div>
 
       {questions.length > 0 && (
-        <div key={questions[currentQuestionIndex].id} className="question-card">
+        <div key={questions[currentQuestionIndex].id} className={`question-card ${showViolationCard ? "blurred" : ""}`}>
+ 
           <p><strong>Q{currentQuestionIndex + 1}:</strong> {questions[currentQuestionIndex].question}</p>
           {questions[currentQuestionIndex].options.map((option) => (
             <label key={option} style={{ display: "block", margin: "5px 0" }}>
