@@ -13,6 +13,10 @@ function Login() {
     navigate('/Signin');
   };
 
+  const goToForgotPassword = () => {
+    navigate('/ForgotPassword');
+  };
+
   const [errorMessage, setErrorMessage] = useState(""); // Store error messages
 
   const handleChange = (e) => {
@@ -35,12 +39,13 @@ function Login() {
 
       const data = await response.json();
 
+      // Check if the response is ok (status 200)
       if (!response.ok) {
         setErrorMessage(data.message || "Login failed");
         return;
       }
 
-      // ✅ Store username in localStorage correctly
+      // ✅ Store username and other relevant data in localStorage or sessionStorage
       if (data.username) {
         localStorage.setItem("username", data.username);
         localStorage.setItem("authToken", "your_auth_token"); // Optional: Store auth token if needed
@@ -49,9 +54,17 @@ function Login() {
         return;
       }
 
-      alert(data.message);
+      // Display success message and redirect after OK
+      alert(data.message); // Show success alert
       console.log("Login successful, redirecting...");
-      navigate("/Dashboard"); // Redirect on successful login
+      
+      // After alert is closed, redirect to Dashboard
+      navigate("/Dashboard");
+
+      setTimeout(() => {
+        navigate("/Dashboard");
+      }, 500);
+      
 
     } catch (error) {
       console.error("Login error:", error);
@@ -66,6 +79,11 @@ function Login() {
 
         <input type="text" name="username" className="login-input" placeholder="Username" onChange={handleChange} required />
         <input type="password" name="password" className="login-input" placeholder="Password" onChange={handleChange} required />
+        <div>
+        <label className="last-page-label" onClick={goToForgotPassword}>
+            Forgot Password?
+          </label>
+        </div>
 
         {errorMessage && <p className="error-message">{errorMessage}</p>} {/* Show error message */}
 

@@ -8,8 +8,8 @@ import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard';
 import ExamQuestions from './pages/ExamQuestions';
-import FullScreenEnforcer from './components/FullScreenEnforcer';
 import Verification from './pages/Verification';
+import ForgotPassword from './pages/ForgotPassword';
 function App() {
   return (
     <>
@@ -57,8 +57,8 @@ function App() {
                     element={<ExamQuestions />}
                 />
                  <Route
-                    path="/FullScreenEnforcer"
-                    element={<FullScreenEnforcer />}
+                    path="/ForgotPassword"
+                    element={<ForgotPassword />}
                 />
 
                 {/* If any route mismatches the upper 

@@ -6,6 +6,7 @@ import "../App.css";
 import TabSwitchDetector from "../components/TabSwitchDetector ";
 import FullScreenEnforcer from "../components/FullScreenEnforcer";
 import VoiceDetectionComponent from "../components/VoiceDetectionComponent";
+import TabFocus from "../components/TabFocus";
 
 const shuffleQuestions = (array) => array.sort(() => Math.random() - 0.5);
 
@@ -254,7 +255,7 @@ function ExamQuestions() {
   setViolationCount={setViolationCount} 
   setIsFullScreen={setIsFullScreen}
 />
-
+<TabFocus submitExam={submitExam} />
       <div className="webcam-container">
         <Webcam ref={webcamRef} screenshotFormat="image/jpeg" width="100%" height="100%" />
       </div>

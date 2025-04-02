@@ -217,7 +217,7 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   text-align: center;
   width: 600px;
-  height: 500px; /* Increased height to fit button properly */
+  height: 650px; /* Increased height to fit button properly */
   display: flex;
   flex-direction: column;
   justify-content: space-between; /* Pushes button to bottom */
@@ -240,7 +240,7 @@ body {
 .signin-row {
   display: flex;
   justify-content: space-between;
-  gap: 15px;
+  gap: 20px;
 }
 
 /* Half-width Inputs */
@@ -271,7 +271,7 @@ body {
 
 /* Department Input */
 .department-input {
-  margin-top: 20px;
+  margin-top: 10px;
 }
 
 /* Sign-up Button */
@@ -292,6 +292,25 @@ body {
   transition: background-color 0.3s;
   width: 100%;
   box-shadow: 0 4px 8px rgba(255, 0, 0, 0.682);
+}
+
+.signin-button-sendOtp {
+  background-color: rgb(172, 31, 31);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 50%;
+  box-shadow: 0 4px 8px rgba(255, 0, 0, 0.682);
+  
+}
+
+.signin-button-sendOtp:hover {
+  background-color: darkorange;
 }
 
 .signin-button:hover {
@@ -331,7 +350,8 @@ body {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 10px; /* Adds extra space before the button */
+  margin-bottom:10px; /* Adds extra space before the button */
+  margin-top: 10px;
 }
 
 /* File Upload Container - Dotted Border */
